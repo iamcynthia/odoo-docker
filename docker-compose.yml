@@ -1,0 +1,41 @@
+version: "3.1"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      - POSTGRES_DB=${PG_DB}
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  odoo:
+    build: ./custom-odoo
+    env_file: ./config/odoo.conf
+    depends_on:
+      db:
+        condition: service_healthy # 等待 db 服務健康後再啟動
+    ports:
+      - "8090:8069"
+    environment:
+      - HOST=db
+      - USER=${PG_USER}
+      - PASSWORD=${PG_PASSWORD}
+    command: odoo
+    volumes:
+      - odoo-web-data:/var/lib/odoo
+      - ./addons:/mnt/extra-addons
+      - ./config:/etc/odoo
+
+volumes:
+  db-data:
+  odoo-web-data:
