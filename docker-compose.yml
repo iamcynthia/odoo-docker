@@ -8,7 +8,7 @@ services:
       - POSTGRES_USER=${PG_USER}
       - POSTGRES_PASSWORD=${PG_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -19,8 +19,7 @@ services:
       start_period: 10s
 
   odoo:
-    build: ./custom-odoo
-    env_file: ./config/odoo.conf
+    image: odoo:18
     depends_on:
       db:
         condition: service_healthy # 等待 db 服務健康後再啟動
@@ -28,13 +27,14 @@ services:
       - "8090:8069"
     environment:
       - HOST=db
+      - PORT=5432
       - USER=${PG_USER}
       - PASSWORD=${PG_PASSWORD}
-    command: odoo
+    command: odoo -d ${PG_DB} -i base --without-demo=all --no-database-list
     volumes:
       - odoo-web-data:/var/lib/odoo
       - ./addons:/mnt/extra-addons
-      - ./config:/etc/odoo
+      # - ./config:/etc/odoo
 
 volumes:
   db-data:
